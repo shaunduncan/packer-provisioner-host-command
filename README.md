@@ -10,6 +10,44 @@ Note: most of this provisioner takes common work from the existing shell provisi
 in packer: https://github.com/mitchellh/packer/tree/master/provisioner/shell
 
 
+Usage
+-----
+
+Usage of this provisioner is similar to the ``shell`` provisioner. Except, the type
+is ``host-command`` and fields are either ``command`` or ``commands``. For example:
+
+```json
+{
+  "type": "host-command",
+  "command": "ls -la"
+}
+```
+
+Or multiple commands, run sequentially:
+
+```json
+{
+  "type": "host-command",
+  "commands": [
+    "whoami",
+    "pwd",
+    "/path/to/script.sh"
+  ]
+}
+```
+
+Both ``command`` and ``commands`` are treated as [configuration templates](http://www.packer.io/docs/templates/configuration-templates.html).
+The full list of available options for this provisioner are:
+
+* **command**: A string of the command to run
+* **commands**: A list of strings of commands to run. These are run sequentially.
+* **environment_vars**: A list of strings for environment variables to set before
+  running a command. These values must be valid syntax (i.e. "foo=bar" or "baz=")
+* **execute_command**: The template for how a command is run. This is a configuration
+  template, and by default is "{{ .Command }}". The template variable "{{ .Command }}"
+  must be present.
+
+
 Building and Running Tests
 --------------------------
 
