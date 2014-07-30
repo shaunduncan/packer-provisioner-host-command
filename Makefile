@@ -9,3 +9,6 @@ deps:
 
 build:
 	go build -o $(GOPATH)/bin/packer-provisioner-host-command -a
+
+test:
+	go test
