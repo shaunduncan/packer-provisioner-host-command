@@ -14,8 +14,6 @@ deploy:
   file: "$ARTIFACT"
   api-key: "$API_KEY"
   skip_cleanup: true
-  on:
-    tags: true
 env:
   global:
     - ARTIFACT=packer-provisioner-host-command
