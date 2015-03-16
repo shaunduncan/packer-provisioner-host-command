@@ -3,6 +3,8 @@ language: go
 branches:
   except:
   - "/^[0-9]/"
+before_script:
+  - go get
 after_success:
   - go build
   - git tag "$TRAVIS_BUILD_NUMBER"
