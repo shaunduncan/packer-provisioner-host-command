@@ -3,6 +3,7 @@ branches:
   except:
   - "/^[0-9]/"
 after_success:
+  - go build
   - git tag "$TRAVIS_BUILD_NUMBER"
   - git push --tags
 deploy:
