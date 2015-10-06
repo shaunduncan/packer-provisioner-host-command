@@ -16,15 +16,17 @@ import (
 
 	"github.com/flynn/go-shlex"
 	"github.com/mitchellh/packer/common"
+        "github.com/mitchellh/packer/helper/config"
 	"github.com/mitchellh/packer/packer"
 	"github.com/mitchellh/packer/packer/plugin"
+        "github.com/mitchellh/packer/template/interpolate"
 )
 
 type ExecuteCommandTemplate struct {
 	Command string
 }
 
-type config struct {
+type Config struct {
 	common.PackerConfig `mapstructure:",squash"`
 
 	// Path of single command to execute
@@ -41,7 +43,7 @@ type config struct {
 	ExecuteCommand string `mapstructure:"execute_command"`
 
 	// The configuration template
-	tpl *packer.ConfigTemplate
+        ctx interpolate.Context
 }
 
 // A wrapper for stdout/stderr to use ui.Say and ui.Error respectively
@@ -55,22 +57,24 @@ func (w CommandWriter) Write(p []byte) (n int, err error) {
 }
 
 type HostCommandProvisioner struct {
-	config config
+	config Config
 }
 
 func (p *HostCommandProvisioner) Prepare(raw ...interface{}) error {
-	metadata, err := common.DecodeConfig(&p.config, raw...)
+	err := config.Decode(&p.config, &config.DecodeOpts{
+                Interpolate: true,
+                InterpolateFilter: &interpolate.RenderFilter{
+                        Exclude: []string{
+                                "execute_command",
+                        },
+               },
+        }, raw...)
+
 	if err != nil {
 		return err
 	}
 
-	p.config.tpl, err = packer.NewConfigTemplate()
-	if err != nil {
-		return err
-	}
-
-	// Make sure there isn't any cruft
-	errs := common.CheckUnusedConfig(metadata)
+        var errs *packer.MultiError
 
 	if p.config.ExecuteCommand == "" {
 		p.config.ExecuteCommand = "{{ .Command }}"
@@ -91,23 +95,6 @@ func (p *HostCommandProvisioner) Prepare(raw ...interface{}) error {
 
 	if p.config.Command != "" {
 		p.config.Commands = []string{p.config.Command}
-	}
-
-	// More complicated slice templates
-	templates := map[string][]string{
-		"commands": p.config.Commands,
-		"vars":     p.config.Vars,
-	}
-
-	for name, data := range templates {
-		for i, item := range data {
-			var err error
-			data[i], err = p.config.tpl.Process(item, nil)
-			if err != nil {
-				errs = packer.MultiErrorAppend(errs,
-					fmt.Errorf("Error processing %s[%d]: %s", name, i, err))
-			}
-		}
 	}
 
 	// Sanity check
@@ -143,9 +130,11 @@ func (p *HostCommandProvisioner) Provision(ui packer.Ui, comm packer.Communicato
 		ui.Say(fmt.Sprintf("Running host command: %s", cmdStr))
 
 		// Compile the full command string
-		command, err := p.config.tpl.Process(p.config.ExecuteCommand, &ExecuteCommandTemplate{
-			Command: cmdStr,
-		})
+                p.config.ctx.Data = &ExecuteCommandTemplate{
+                	Command: cmdStr,
+                }
+
+                command, err := interpolate.Render(p.config.ExecuteCommand, &p.config.ctx)
 
 		if err != nil {
 			return fmt.Errorf("Error processing command '%s': %s", cmdStr, err)
