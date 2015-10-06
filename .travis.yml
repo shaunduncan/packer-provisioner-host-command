@@ -1,0 +1,20 @@
+sudo: false
+language: go
+branches:
+  except:
+  - "/^[0-9]/"
+before_script:
+  - go get
+after_success:
+  - go build
+  - git tag "$TRAVIS_BUILD_NUMBER"
+  - git push --tags
+deploy:
+  provider: releases
+  file: "$ARTIFACT"
+  api-key: "$API_KEY"
+  skip_cleanup: true
+env:
+  global:
+    - ARTIFACT=packer-provisioner-host-command
+    - secure: KHjhX59vKc7tBoRkqplXLH9oLBmrEfDM8At91Zwd7XnA56s873acVwBDRAVfH8hLjEMXotCN/Cc1dTFAXVNRwgRxbWGhgyZC1ugrFvrjIMZWLF7/OGii6BpgAfLxMxx0DUW7zTnTpjyOSSr41e6dBK2FH9ZbcDLUvh/xNCT0Cko=
